@@ -13,7 +13,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up PagerDuty button entities from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     session = hass.data[DOMAIN][entry.entry_id]["session"]
-    default_from_email = entry.data.get("default_from_email", "")
+    # Read from options first, fallback to data for backward compatibility
+    default_from_email = entry.options.get(
+        "default_from_email",
+        entry.data.get("default_from_email", "")
+    )
 
     # Get entity registry to clean up orphaned entities from previous sessions
     entity_reg = er.async_get(hass)

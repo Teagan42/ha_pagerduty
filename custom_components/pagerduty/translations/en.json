@@ -21,15 +21,25 @@
                 "data": {
                     "api_key": "API Key",
                     "ignored_team_ids": "Ignored Team IDs (comma-separated)",
-                    "api_server": "PagerDuty API Server",
-                    "extra_incident_attributes_template": "Extra Incident Attributes Template (Jinja2)",
-                    "default_from_email": "Default From Email (for PagerDuty updates)"
+                    "api_server": "PagerDuty API Server"
                 }
             }
         },
         "error": {
             "invalid_api_key": "The API key is invalid. Please check and try again.",
             "invalid_api_key_or_roles": "Missing api roles"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "PagerDuty Options",
+                "description": "Configure optional PagerDuty settings.",
+                "data": {
+                    "extra_incident_attributes_template": "Extra Incident Attributes Template (Jinja2)",
+                    "default_from_email": "Default From Email (for PagerDuty updates)"
+                }
+            }
         }
     }
 }
