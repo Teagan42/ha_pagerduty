@@ -17,8 +17,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     user_id = coordinator.data.get("user_id", "")
 
     # Get template configuration and build template if provided
-    extra_incident_template_str = entry.data.get(
-        "extra_incident_attributes_template", ""
+    # Read from options first, fallback to data for backward compatibility
+    extra_incident_template_str = entry.options.get(
+        "extra_incident_attributes_template",
+        entry.data.get("extra_incident_attributes_template", "")
     )
     extra_incident_template = None
     if extra_incident_template_str:

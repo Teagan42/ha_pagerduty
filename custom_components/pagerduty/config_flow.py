@@ -1,5 +1,7 @@
-import voluptuous as vol
+"""Config flow for PagerDuty integration."""
 import logging
+
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 from homeassistant.helpers.selector import (
@@ -8,8 +10,9 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
-from .const import DOMAIN, REQUIRED_ROLES
 from pagerduty import RestApiV2Client, Error
+
+from .const import DOMAIN, REQUIRED_ROLES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,6 +21,11 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for PagerDuty integration."""
 
     VERSION = 1
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return PagerDutyOptionsFlow(config_entry)
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -52,10 +60,6 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional("ignored_team_ids", default=""): str,
                     vol.Optional("api_server", default="US"): vol.In(
                         ["US", "EU"]
-                    ),
-                    vol.Optional("extra_incident_attributes_template", default=""): TemplateSelector(),
-                    vol.Optional("default_from_email", default=""): TextSelector(
-                        TextSelectorConfig(type=TextSelectorType.EMAIL)
                     ),
                 }
             ),
@@ -98,3 +102,44 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             processed_abilities.add(base_ability)
 
         return any(role in processed_abilities for role in REQUIRED_ROLES)
+
+
+class PagerDutyOptionsFlow(config_entries.OptionsFlow):
+    """Handle options flow for PagerDuty integration."""
+
+    def __init__(self, config_entry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        # Get current values from options or fall back to data for migration
+        current_template = self.config_entry.options.get(
+            "extra_incident_attributes_template",
+            self.config_entry.data.get("extra_incident_attributes_template", "")
+        )
+        current_email = self.config_entry.options.get(
+            "default_from_email",
+            self.config_entry.data.get("default_from_email", "")
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "extra_incident_attributes_template",
+                        default=current_template
+                    ): TemplateSelector(),
+                    vol.Optional(
+                        "default_from_email",
+                        default=current_email
+                    ): TextSelector(
+                        TextSelectorConfig(type=TextSelectorType.EMAIL)
+                    ),
+                }
+            ),
+        )
