@@ -45,8 +45,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         for incident_id in list(tracked_buttons.keys()):
             if incident_id not in triggered_incident_ids:
                 button = tracked_buttons.pop(incident_id)
-                # Mark the button for removal
-                hass.async_create_task(button.async_remove())
+                # Mark the button for removal with force_remove to clean up registry
+                hass.async_create_task(button.async_remove(force_remove=True))
                 _LOGGER.debug(
                     "Removed acknowledge button for incident %s",
                     incident_id

@@ -1,6 +1,8 @@
 import logging
 import json
+from typing import Optional
 from collections import defaultdict
+from homeassistant.core import HomeAssistant
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.template import Template
@@ -14,10 +16,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     user_id = coordinator.data.get("user_id", "")
 
-    # Get template configuration
-    extra_incident_template = entry.data.get(
+    # Get template configuration and build template if provided
+    extra_incident_template_str = entry.data.get(
         "extra_incident_attributes_template", ""
     )
+    extra_incident_template = None
+    if extra_incident_template_str:
+        extra_incident_template = Template(extra_incident_template_str, hass)
 
     sensor_descriptions = [
         {
@@ -90,7 +95,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, True)
 
 
-def calculate_attributes(data, service_id, hass, extra_incident_template):
+def calculate_attributes(
+    data: dict,
+    service_id: Optional[str],
+    hass: HomeAssistant,
+    extra_incident_template: Optional[Template]
+) -> dict:
     """Calculate attributes for a sensor."""
 
     urgency_counts = defaultdict(int)
@@ -115,9 +125,8 @@ def calculate_attributes(data, service_id, hass, extra_incident_template):
             # Process through Jinja2 template if provided
             if extra_incident_template:
                 try:
-                    template = Template(extra_incident_template, hass)
                     # Use render instead of async_render since we're in sync context
-                    rendered = template.render({"incident": incident})
+                    rendered = extra_incident_template.render({"incident": incident})
                     # Try to parse as dict if it's valid JSON/dict string
                     try:
                         template_result = (

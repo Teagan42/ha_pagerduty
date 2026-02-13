@@ -95,11 +95,12 @@ async def async_unload_entry(
         entry, PLATFORMS
     )
 
-    # Clean up button listener if it exists
-    if "button_unsub" in hass.data[DOMAIN][entry.entry_id]:
-        hass.data[DOMAIN][entry.entry_id]["button_unsub"]()
-
+    # Only clean up button listener if platforms were successfully unloaded
     if unload_ok:
+        # Clean up button listener if it exists
+        if "button_unsub" in hass.data[DOMAIN][entry.entry_id]:
+            hass.data[DOMAIN][entry.entry_id]["button_unsub"]()
+
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
