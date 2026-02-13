@@ -123,8 +123,8 @@ def calculate_attributes(
             }
 
             # Use pre-rendered template data if available
-            if "_template_rendered" in incident:
-                template_result = incident["_template_rendered"]
+            if "rendered_template_data" in incident:
+                template_result = incident["rendered_template_data"]
                 if template_result is not None:
                     incident_details["extra"] = template_result
 

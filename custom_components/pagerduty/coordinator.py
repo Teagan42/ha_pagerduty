@@ -180,14 +180,14 @@ class PagerDutyDataUpdateCoordinator(DataUpdateCoordinator):
                     self._render_template_sync, incident
                 )
                 # Store rendered result in incident data
-                incident["_template_rendered"] = rendered
+                incident["rendered_template_data"] = rendered
             except Exception as e:
                 _LOGGER.error(
                     "Error rendering template for incident %s: %s",
                     incident_id,
                     e
                 )
-                incident["_template_rendered"] = None
+                incident["rendered_template_data"] = None
         return incidents
 
     def _render_template_sync(self, incident):
