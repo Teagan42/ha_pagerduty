@@ -15,7 +15,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     user_id = coordinator.data.get("user_id", "")
 
     # Get template configuration
-    extra_incident_template = entry.data.get("extra_incident_attributes_template", "")
+    extra_incident_template = entry.data.get(
+        "extra_incident_attributes_template", ""
+    )
 
     sensor_descriptions = [
         {
@@ -23,7 +25,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "name": "PagerDuty Total Incidents",
             "value_fn": lambda data: len(data.get("incidents", [])),
             "unique_id": f"pagerduty_total_incidents{user_id}",
-            "attribute_fn": lambda data: calculate_attributes(data, None, hass, extra_incident_template),
+            "attribute_fn": lambda data: calculate_attributes(
+                data, None, hass, extra_incident_template
+            ),
             "native_unit_of_measurement": "incidents",
             "state_class": "measurement",
         },
