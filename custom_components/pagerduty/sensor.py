@@ -191,7 +191,6 @@ class PagerDutySensor(SensorEntity, CoordinatorEntity):
             "identifiers": {(DOMAIN, unique_device_name)},
             "name": unique_device_name,
             "manufacturer": "PagerDuty Inc.",
-            "via_device": (DOMAIN, unique_device_name),
         }
 
     @property

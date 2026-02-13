@@ -56,7 +56,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_remove_buttons()
 
     # Register callback for coordinator updates
-    coordinator.async_add_listener(async_add_remove_buttons)
+    unsub = coordinator.async_add_listener(async_add_remove_buttons)
+
+    # Store the unsubscribe function for cleanup
+    hass.data[DOMAIN][entry.entry_id]["button_unsub"] = unsub
 
 
 class PagerDutyAcknowledgeButton(ButtonEntity, CoordinatorEntity):
@@ -88,7 +91,6 @@ class PagerDutyAcknowledgeButton(ButtonEntity, CoordinatorEntity):
             "identifiers": {(DOMAIN, unique_device_name)},
             "name": unique_device_name,
             "manufacturer": "PagerDuty Inc.",
-            "via_device": (DOMAIN, unique_device_name),
         }
 
     @property
