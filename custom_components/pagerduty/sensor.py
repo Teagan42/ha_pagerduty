@@ -22,9 +22,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         "extra_incident_attributes_template",
         entry.data.get("extra_incident_attributes_template", "")
     )
-    extra_incident_template = None
     if extra_incident_template_str:
-        extra_incident_template = Template(extra_incident_template_str, hass)
+        # Set the template on the coordinator so it can render during data updates
+        coordinator.extra_incident_template = Template(extra_incident_template_str, hass)
 
     sensor_descriptions = [
         {
@@ -33,7 +33,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "value_fn": lambda data: len(data.get("incidents", [])),
             "unique_id": f"pagerduty_total_incidents{user_id}",
             "attribute_fn": lambda data: calculate_attributes(
-                data, None, hass, extra_incident_template
+                data, None
             ),
             "native_unit_of_measurement": "incidents",
             "state_class": "measurement",
@@ -83,7 +83,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 ),
                 "unique_id": unique_id,
                 "attribute_fn": lambda data, service_id=service_id: calculate_attributes(
-                    data, service_id, hass, extra_incident_template
+                    data, service_id
                 ),
                 "native_unit_of_measurement": "incidents",
                 "state_class": "measurement",
@@ -99,9 +99,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 def calculate_attributes(
     data: dict,
-    service_id: Optional[str],
-    hass: HomeAssistant,
-    extra_incident_template: Optional[Template]
+    service_id: Optional[str]
 ) -> dict:
     """Calculate attributes for a sensor."""
 
@@ -124,28 +122,11 @@ def calculate_attributes(
                 "updated_at": incident.get("updated_at"),
             }
 
-            # Process through Jinja2 template if provided
-            if extra_incident_template:
-                try:
-                    # Use render instead of async_render since we're in sync context
-                    rendered = extra_incident_template.render({"incident": incident})
-                    # Try to parse as dict if it's valid JSON/dict string
-                    try:
-                        template_result = (
-                            json.loads(rendered)
-                            if isinstance(rendered, str)
-                            else rendered
-                        )
-                        incident_details["extra"] = template_result
-                    except (json.JSONDecodeError, TypeError):
-                        incident_details["extra"] = rendered
-                except Exception as e:
-                    _LOGGER.error(
-                        "Error rendering template for incident %s: %s",
-                        incident_id,
-                        e
-                    )
-                    incident_details["extra"] = None
+            # Use pre-rendered template data if available
+            if "_template_rendered" in incident:
+                template_result = incident["_template_rendered"]
+                if template_result is not None:
+                    incident_details["extra"] = template_result
 
             incidents_dict[incident_id] = incident_details
 
