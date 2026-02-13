@@ -2,6 +2,12 @@ import voluptuous as vol
 import logging
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
+from homeassistant.helpers.selector import (
+    TemplateSelector,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 from .const import DOMAIN, REQUIRED_ROLES
 from pagerduty import RestApiV2Client, Error
 
@@ -46,6 +52,10 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional("ignored_team_ids", default=""): str,
                     vol.Optional("api_server", default="US"): vol.In(
                         ["US", "EU"]
+                    ),
+                    vol.Optional("extra_incident_attributes_template", default=""): TemplateSelector(),
+                    vol.Optional("default_from_email", default=""): TextSelector(
+                        TextSelectorConfig(type=TextSelectorType.EMAIL)
                     ),
                 }
             ),

@@ -159,7 +159,7 @@ class PagerDutyDataUpdateCoordinator(DataUpdateCoordinator):
             params={
                 "service_ids[]": service_ids,
                 "statuses[]": ["acknowledged", "triggered"],
-                "include[]": "users",
+                "include[]": ["users", "first_trigger_log_entry"],
             },
         )
         return all_incidents

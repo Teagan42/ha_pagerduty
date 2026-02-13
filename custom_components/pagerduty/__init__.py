@@ -16,7 +16,7 @@ from .coordinator import PagerDutyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
+PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.BUTTON]
 CONFIG_SCHEMA = config_validation.config_entry_only_config_schema(DOMAIN)
 SCAN_INTERVAL = timedelta(seconds=30)
 
@@ -84,3 +84,23 @@ async def async_setup_entry(
     )
 
     return True
+
+
+async def async_unload_entry(
+    hass: core.HomeAssistant, entry: config_entries.ConfigEntry
+) -> bool:
+    """Unload a config entry."""
+    # Unload platforms
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        entry, PLATFORMS
+    )
+
+    # Only clean up button listener if platforms were successfully unloaded
+    if unload_ok:
+        # Clean up button listener if it exists
+        if "button_unsub" in hass.data[DOMAIN][entry.entry_id]:
+            hass.data[DOMAIN][entry.entry_id]["button_unsub"]()
+
+        hass.data[DOMAIN].pop(entry.entry_id)
+
+    return unload_ok
