@@ -25,7 +25,7 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
-        return PagerDutyOptionsFlow(config_entry)
+        return PagerDutyOptionsFlow()
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -106,10 +106,6 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class PagerDutyOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for PagerDuty integration."""
-
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage the options."""
