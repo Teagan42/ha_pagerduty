@@ -2,6 +2,7 @@
 import logging
 from homeassistant.components.button import ButtonEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
 from .const import DOMAIN
 
@@ -13,6 +14,36 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     session = hass.data[DOMAIN][entry.entry_id]["session"]
     default_from_email = entry.data.get("default_from_email", "")
+
+    # Get entity registry to clean up orphaned entities from previous sessions
+    entity_reg = er.async_get(hass)
+    
+    # Get all existing PagerDuty acknowledge button entities
+    existing_entities = er.async_entries_for_config_entry(
+        entity_reg, entry.entry_id
+    )
+    existing_button_entities = {
+        entity.unique_id: entity
+        for entity in existing_entities
+        if entity.unique_id and entity.unique_id.startswith("pagerduty_ack_")
+    }
+    
+    # Get current triggered incidents to determine which buttons should exist
+    incidents = coordinator.data.get("incidents", [])
+    current_triggered_ids = {
+        f"pagerduty_ack_{incident.get('id')}"
+        for incident in incidents
+        if incident.get("status") == "triggered"
+    }
+    
+    # Clean up orphaned entities from previous sessions
+    for unique_id, entity in existing_button_entities.items():
+        if unique_id not in current_triggered_ids:
+            _LOGGER.debug(
+                "Removing orphaned button entity %s from previous session",
+                unique_id
+            )
+            entity_reg.async_remove(entity.entity_id)
 
     # Track existing button entities
     tracked_buttons = {}
