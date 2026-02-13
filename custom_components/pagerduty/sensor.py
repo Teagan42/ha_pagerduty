@@ -1,4 +1,5 @@
 import logging
+import json
 from collections import defaultdict
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -12,7 +13,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up PagerDuty sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     user_id = coordinator.data.get("user_id", "")
-    
+
     # Get template configuration
     extra_incident_template = entry.data.get("extra_incident_attributes_template", "")
 
@@ -91,14 +92,14 @@ def calculate_attributes(data, service_id, hass, extra_incident_template):
     urgency_counts = defaultdict(int)
     status_counts = defaultdict(int)
     incidents_dict = {}
-    
+
     for incident in data.get("incidents", []):
         if service_id is None or incident["service"]["id"] == service_id:
             urgency = incident.get("urgency", "unknown")
             status = incident.get("status", "unknown")
             urgency_counts[urgency] += 1
             status_counts[status] += 1
-            
+
             # Build incident details dictionary
             incident_id = incident.get("id")
             incident_details = {
@@ -106,25 +107,33 @@ def calculate_attributes(data, service_id, hass, extra_incident_template):
                 "created_at": incident.get("created_at"),
                 "updated_at": incident.get("updated_at"),
             }
-            
+
             # Process through Jinja2 template if provided
             if extra_incident_template:
                 try:
                     template = Template(extra_incident_template, hass)
-                    rendered = template.async_render({"incident": incident})
+                    # Use render instead of async_render since we're in sync context
+                    rendered = template.render({"incident": incident})
                     # Try to parse as dict if it's valid JSON/dict string
-                    import json
                     try:
-                        template_result = json.loads(rendered) if isinstance(rendered, str) else rendered
+                        template_result = (
+                            json.loads(rendered)
+                            if isinstance(rendered, str)
+                            else rendered
+                        )
                         incident_details["extra"] = template_result
                     except (json.JSONDecodeError, TypeError):
                         incident_details["extra"] = rendered
                 except Exception as e:
-                    _LOGGER.error(f"Error rendering template for incident {incident_id}: {e}")
+                    _LOGGER.error(
+                        "Error rendering template for incident %s: %s",
+                        incident_id,
+                        e
+                    )
                     incident_details["extra"] = None
-            
+
             incidents_dict[incident_id] = incident_details
-    
+
     return {
         "urgency_low": urgency_counts["low"],
         "urgency_high": urgency_counts["high"],
