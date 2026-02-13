@@ -47,6 +47,8 @@ class PagerDutyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional("api_server", default="US"): vol.In(
                         ["US", "EU"]
                     ),
+                    vol.Optional("extra_incident_attributes_template", default=""): str,
+                    vol.Optional("default_from_email", default=""): str,
                 }
             ),
             errors=errors,

@@ -21,7 +21,9 @@
                 "data": {
                     "api_key": "API Key",
                     "ignored_team_ids": "Ignored Team IDs (comma-separated)",
-                    "api_server": "PagerDuty API Server"
+                    "api_server": "PagerDuty API Server",
+                    "extra_incident_attributes_template": "Extra Incident Attributes Template (Jinja2)",
+                    "default_from_email": "Default From Email (for PagerDuty updates)"
                 }
             }
         },

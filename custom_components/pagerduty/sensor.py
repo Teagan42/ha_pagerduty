@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.template import Template
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -11,6 +12,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up PagerDuty sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     user_id = coordinator.data.get("user_id", "")
+    
+    # Get template configuration
+    extra_incident_template = entry.data.get("extra_incident_attributes_template", "")
 
     sensor_descriptions = [
         {
@@ -18,7 +22,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "name": "PagerDuty Total Incidents",
             "value_fn": lambda data: len(data.get("incidents", [])),
             "unique_id": f"pagerduty_total_incidents{user_id}",
-            "attribute_fn": lambda data: calculate_attributes(data, None),
+            "attribute_fn": lambda data: calculate_attributes(data, None, hass, extra_incident_template),
             "native_unit_of_measurement": "incidents",
             "state_class": "measurement",
         },
@@ -67,7 +71,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 ),
                 "unique_id": unique_id,
                 "attribute_fn": lambda data, service_id=service_id: calculate_attributes(
-                    data, service_id
+                    data, service_id, hass, extra_incident_template
                 ),
                 "native_unit_of_measurement": "incidents",
                 "state_class": "measurement",
@@ -81,22 +85,52 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, True)
 
 
-def calculate_attributes(data, service_id):
+def calculate_attributes(data, service_id, hass, extra_incident_template):
     """Calculate attributes for a sensor."""
 
     urgency_counts = defaultdict(int)
     status_counts = defaultdict(int)
+    incidents_dict = {}
+    
     for incident in data.get("incidents", []):
         if service_id is None or incident["service"]["id"] == service_id:
             urgency = incident.get("urgency", "unknown")
             status = incident.get("status", "unknown")
             urgency_counts[urgency] += 1
             status_counts[status] += 1
+            
+            # Build incident details dictionary
+            incident_id = incident.get("id")
+            incident_details = {
+                "status": status,
+                "created_at": incident.get("created_at"),
+                "updated_at": incident.get("updated_at"),
+            }
+            
+            # Process through Jinja2 template if provided
+            if extra_incident_template:
+                try:
+                    template = Template(extra_incident_template, hass)
+                    rendered = template.async_render({"incident": incident})
+                    # Try to parse as dict if it's valid JSON/dict string
+                    import json
+                    try:
+                        template_result = json.loads(rendered) if isinstance(rendered, str) else rendered
+                        incident_details["extra"] = template_result
+                    except (json.JSONDecodeError, TypeError):
+                        incident_details["extra"] = rendered
+                except Exception as e:
+                    _LOGGER.error(f"Error rendering template for incident {incident_id}: {e}")
+                    incident_details["extra"] = None
+            
+            incidents_dict[incident_id] = incident_details
+    
     return {
         "urgency_low": urgency_counts["low"],
         "urgency_high": urgency_counts["high"],
         "status_triggered": status_counts["triggered"],
         "status_acknowledged": status_counts["acknowledged"],
+        "incidents": incidents_dict,
     }
 
 
