@@ -1,4 +1,5 @@
 import logging
+import json
 from homeassistant.util import dt as dt_util
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import (
@@ -18,6 +19,7 @@ class PagerDutyDataUpdateCoordinator(DataUpdateCoordinator):
         """Initialize."""
         self.session = session
         self.ignored_team_ids = ignored_team_ids
+        self.extra_incident_template = None
         _LOGGER.debug(f"Ignored teams: {ignored_team_ids}")
 
         super().__init__(
@@ -63,6 +65,10 @@ class PagerDutyDataUpdateCoordinator(DataUpdateCoordinator):
                 self.fetch_incidents, service_ids
             )
             _LOGGER.debug(f"Fetched incidents. Sample: {incidents[:2]}")
+
+            # Render templates for incidents if template is configured
+            if self.extra_incident_template:
+                incidents = await self._async_render_incident_templates(incidents)
 
             on_call_schedules = await self.hass.async_add_executor_job(
                 self.fetch_on_call_schedules,
@@ -163,3 +169,37 @@ class PagerDutyDataUpdateCoordinator(DataUpdateCoordinator):
             },
         )
         return all_incidents
+
+    async def _async_render_incident_templates(self, incidents):
+        """Render templates for incidents asynchronously."""
+        for incident in incidents:
+            incident_id = incident.get("id")
+            try:
+                # Render template in executor to avoid blocking event loop
+                rendered = await self.hass.async_add_executor_job(
+                    self._render_template_sync, incident
+                )
+                # Store rendered result in incident data
+                incident["rendered_template_data"] = rendered
+            except Exception as e:
+                _LOGGER.error(
+                    "Error rendering template for incident %s: %s",
+                    incident_id,
+                    e
+                )
+                incident["rendered_template_data"] = None
+        return incidents
+
+    def _render_template_sync(self, incident):
+        """Synchronous template rendering method."""
+        rendered = self.extra_incident_template.render({"incident": incident})
+        # Try to parse as dict if it's valid JSON/dict string
+        try:
+            template_result = (
+                json.loads(rendered)
+                if isinstance(rendered, str)
+                else rendered
+            )
+            return template_result
+        except (json.JSONDecodeError, TypeError):
+            return rendered
