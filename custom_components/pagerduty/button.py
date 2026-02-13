@@ -21,7 +21,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Get entity registry to clean up orphaned entities from previous sessions
     entity_reg = er.async_get(hass)
-    
+
     # Get all existing PagerDuty acknowledge button entities
     existing_entities = er.async_entries_for_config_entry(
         entity_reg, entry.entry_id
@@ -31,7 +31,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         for entity in existing_entities
         if entity.unique_id and entity.unique_id.startswith("pagerduty_ack_")
     }
-    
+
     # Get current triggered incidents to determine which buttons should exist
     incidents = coordinator.data.get("incidents", [])
     current_triggered_ids = {
@@ -39,7 +39,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         for incident in incidents
         if incident.get("status") == "triggered"
     }
-    
+
     # Clean up orphaned entities from previous sessions
     for unique_id, entity in existing_button_entities.items():
         if unique_id not in current_triggered_ids:

@@ -1,5 +1,7 @@
-import voluptuous as vol
+"""Config flow for PagerDuty integration."""
 import logging
+
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 from homeassistant.helpers.selector import (
@@ -8,8 +10,9 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
-from .const import DOMAIN, REQUIRED_ROLES
 from pagerduty import RestApiV2Client, Error
+
+from .const import DOMAIN, REQUIRED_ROLES
 
 _LOGGER = logging.getLogger(__name__)
 
