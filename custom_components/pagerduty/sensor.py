@@ -97,6 +97,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, True)
 
 
+def get_assignments_list(incident):
+    """Return a list of assignee names for an incident."""
+    return [
+        a.get("assignee", {}).get("summary", "Unknown")
+        for a in incident.get("assignments", [])
+    ]
+
+
 def calculate_attributes(
     data: dict,
     service_id: Optional[str]
@@ -120,6 +128,13 @@ def calculate_attributes(
                 "status": status,
                 "created_at": incident.get("created_at"),
                 "updated_at": incident.get("updated_at"),
+                "title": incident.get("title", "Unknown"),
+                "urgency": urgency,
+                "incident_number": incident.get("incident_number"),
+                "service_name": incident.get("service", {}).get("summary", "Unknown"),
+                "description": incident.get("description", ""),
+                "html_url": incident.get("html_url", ""),
+                "assignments": get_assignments_list(incident),
             }
 
             # Use pre-rendered template data if available
@@ -154,6 +169,12 @@ def calculate_assigned_incidents_attributes(data, user_id):
                     "title": incident.get("title", "Unknown"),
                     "description": incident.get("description", "Unknown"),
                     "status": incident.get("status", "Unknown"),
+                    "id": incident.get("id", ""),
+                    "incident_number": incident.get("incident_number"),
+                    "urgency": incident.get("urgency", "Unknown"),
+                    "created_at": incident.get("created_at"),
+                    "updated_at": incident.get("updated_at"),
+                    "html_url": incident.get("html_url", ""),
                 }
                 assigned_incidents.append(incident_to_add)
     return {"assigned_incidents": assigned_incidents}

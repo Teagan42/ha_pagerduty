@@ -5,6 +5,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
 from .const import DOMAIN
+from .sensor import get_assignments_list
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -131,6 +132,26 @@ class PagerDutyAcknowledgeButton(ButtonEntity, CoordinatorEntity):
     @property
     def extra_state_attributes(self):
         """Return additional state attributes."""
+        # Look up current incident data from coordinator for up-to-date details
+        incidents = self.coordinator.data.get("incidents", [])
+        for incident in incidents:
+            if incident.get("id") == self._incident_id:
+                return {
+                    "incident_id": self._incident_id,
+                    "incident_number": self._incident_number,
+                    "incident_title": incident.get("title", self._incident_title),
+                    "service_name": incident.get("service", {}).get(
+                        "summary", self._service_name
+                    ),
+                    "description": incident.get("description", ""),
+                    "urgency": incident.get("urgency", ""),
+                    "status": incident.get("status", ""),
+                    "created_at": incident.get("created_at"),
+                    "updated_at": incident.get("updated_at"),
+                    "html_url": incident.get("html_url", ""),
+                    "assignments": get_assignments_list(incident),
+                }
+        # Fall back to cached data if incident not found in coordinator
         return {
             "incident_id": self._incident_id,
             "incident_number": self._incident_number,
